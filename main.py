@@ -33,18 +33,28 @@ resources = {
 
 
 def check_resources(water_needed, milk_needed, coffee_needed):
-    """Returns 'make coffee' if there are enough resources or return corresponding message
-    in case that there is no enough resource of a type"""
+    """Returns an object with key 'make-coffee' that returns True or False
+    depending on if are enough resources. In addition, if there are not enough
+    returns an error message"""
     if resources['water'] >= water_needed:
         if resources['coffee'] >= coffee_needed:
             if resources['milk'] >= milk_needed:
-                return 'make coffee'
+                return {'make_coffee': True}
             else:
-                return 'Sorry there is not enough milk.'
+                return {
+                    'make_coffee': False,
+                    'message': 'Sorry there is not enough milk.\n'
+                }
         else:
-            return 'Sorry there is not enough coffee.'
+            return {
+                'make_coffee': False,
+                'message': 'Sorry there is not enough coffee.\n'
+            }
     else:
-        return 'Sorry there is not enough water.'
+        return {
+            'make_coffee': False,
+            'message': 'Sorry there is not enough water.\n'
+        }
 
 
 def get_ingredient_needed(type_of_coffee, ingredient):
@@ -52,29 +62,94 @@ def get_ingredient_needed(type_of_coffee, ingredient):
     return MENU[type_of_coffee]['ingredients'][ingredient]
 
 
-user_input = input('What would you like? (espresso/latte/cappuccino): ').lower()
-coffee_message = ''
+def calculate_money(inserted_quarters, inserted_dimes, inserted_nickles, inserted_pennies):
+    inserted_quarters *= 0.25
+    inserted_dimes *= 0.1
+    inserted_nickles *= 0.05
+    inserted_pennies *= 0.01
+    return inserted_quarters + inserted_dimes + inserted_nickles + inserted_pennies
 
-if user_input == 'off':
-    print('Machine turning off...')
-elif user_input == 'report':
-    print(f'Water: {resources["water"]}ml')
-    print(f'Milk: {resources["milk"]}ml')
-    print(f'Coffee: {resources["coffee"]}g')
-    print(f'Money: ${resources["money"]}')
-elif user_input == 'espresso':
-    espresso_water_needed = get_ingredient_needed('espresso', 'water')
-    espresso_coffee_needed = get_ingredient_needed('espresso', 'coffee')
-    coffee_message = check_resources(espresso_water_needed, 0, espresso_coffee_needed)
-elif user_input == 'latte':
-    latte_water_needed = get_ingredient_needed('latte', 'water')
-    latte_coffee_needed = get_ingredient_needed('latte', 'coffee')
-    latte_milk_needed = get_ingredient_needed('latte', 'milk')
-    coffee_message = check_resources(latte_water_needed, latte_milk_needed, latte_coffee_needed)
-elif user_input == 'cappuccino':
-    cappuccino_water_needed = get_ingredient_needed('cappuccino', 'water')
-    cappuccino_coffee_needed = get_ingredient_needed('cappuccino', 'coffee')
-    cappuccino_milk_needed = get_ingredient_needed('cappuccino', 'milk')
-    coffee_message = check_resources(cappuccino_water_needed, cappuccino_milk_needed, cappuccino_coffee_needed)
 
-print(coffee_message)
+machine_on = True
+
+while machine_on:
+    water_required = 0
+    coffee_required = 0
+    milk_required = 0
+    make_coffee = False
+    error_message = ''
+    coffee_cost = 0
+    coffee_to_prepare = ''
+
+    user_input = input('What would you like? (espresso/latte/cappuccino): ').lower()
+
+    if user_input == 'espresso':
+        water_required = get_ingredient_needed('espresso', 'water')
+        coffee_required = get_ingredient_needed('espresso', 'coffee')
+        check_resources_output = check_resources(water_required, milk_required, coffee_required)
+        if check_resources_output['make_coffee']:
+            make_coffee = check_resources_output['make_coffee']
+            coffee_cost = MENU['espresso']['cost']
+            coffee_to_prepare = 'espresso'
+        else:
+            error_message = check_resources_output['message']
+
+    elif user_input == 'latte':
+        water_required = get_ingredient_needed('latte', 'water')
+        coffee_required = get_ingredient_needed('latte', 'coffee')
+        milk_required = get_ingredient_needed('latte', 'milk')
+        check_resources_output = check_resources(water_required, milk_required, coffee_required)
+        if check_resources_output['make_coffee']:
+            make_coffee = check_resources_output['make_coffee']
+            coffee_cost = MENU['latte']['cost']
+            coffee_to_prepare = 'latte'
+        else:
+            error_message = check_resources_output['message']
+
+    elif user_input == 'cappuccino':
+        water_required = get_ingredient_needed('cappuccino', 'water')
+        coffee_required = get_ingredient_needed('cappuccino', 'coffee')
+        milk_required = get_ingredient_needed('cappuccino', 'milk')
+        check_resources_output = check_resources(water_required, milk_required, coffee_required)
+        if check_resources_output['make_coffee']:
+            make_coffee = check_resources_output['make_coffee']
+            coffee_cost = MENU['latte']['cost']
+            coffee_to_prepare = 'cappuccino'
+        else:
+            error_message = check_resources_output['message']
+
+    elif user_input == 'off':
+        print('Machine turning off...')
+        machine_on = False
+
+    elif user_input == 'report':
+        print(f'Water: {resources["water"]}ml')
+        print(f'Milk: {resources["milk"]}ml')
+        print(f'Coffee: {resources["coffee"]}g')
+        print(f'Money: ${resources["money"]}')
+
+    else:
+        print('Wrong Input.')
+
+    if make_coffee:
+        print(f'Your coffee will cost: ${coffee_cost}. Please insert coins:')
+        quarters = float(input('quarters: '))
+        dimes = float(input('dimes: '))
+        nickles = float(input('nickles: '))
+        pennies = float(input('pennies: '))
+        money_inserted = calculate_money(quarters, dimes, nickles, pennies)
+        print(f'You inserted: ${"{:.2f}".format(money_inserted)}')
+
+        if money_inserted < coffee_cost:
+            print('Sorry that\'s not enough money. Money refunded.\n')
+        else:
+            resources['money'] += coffee_cost
+            if money_inserted > coffee_cost:
+                change = "{:.2f}".format(round((money_inserted - coffee_cost), 2))
+                print(f'Here is ${change} dollars in change.')
+            resources['water'] -= water_required
+            resources['coffee'] -= coffee_required
+            resources['milk'] -= milk_required
+            print(f'Here is your {coffee_to_prepare}. Enjoy!\n')
+    else:
+        print(error_message)
